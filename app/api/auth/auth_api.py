@@ -22,4 +22,4 @@ async def register_seller(seller: SellerRegister, db: AsyncSession = Depends(get
     response_model=TokenResponse
 )
 async def seller_login(login_data: SellerLogin, db: AsyncSession = Depends(get_db)):
-    return await login(kaspi_email=login_data.kaspi_email, password=login_data.kaspi_password, db=db)
+    return await login(kaspi_email=login_data.kaspi_email, kaspi_password=login_data.kaspi_password, db=db)

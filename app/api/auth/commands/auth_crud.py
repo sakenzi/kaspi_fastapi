@@ -5,6 +5,7 @@ from model.models import Seller
 from fastapi import HTTPException
 from utils.context_utils import hash_password, create_access_token, verify_password
 from app.api.auth.schemas.response import TokenResponse
+from parsing.register_parsing import KaspiParser
 
 
 async def register(seller: SellerRegister, db: AsyncSession):
@@ -14,11 +15,21 @@ async def register(seller: SellerRegister, db: AsyncSession):
     if existing_seller:
         raise HTTPException(status_code=400, detail="Такой продавец уже существует")
     
+    parser = KaspiParser()
+    parser.setup_driver()
+    try:
+        result, name_market = parser.parse_kaspi(seller.kaspi_email, seller.kaspi_password)
+        if not result:
+            raise HTTPException(status_code=400, detail="Неверный пароль или email")
+    finally:
+        parser.close_driver()
+    
     hashed_password = hash_password(seller.kaspi_password)
 
     new_seller = Seller(
         kaspi_email=seller.kaspi_email,
         kaspi_password=hashed_password,
+        name_market=name_market
     )
     db.add(new_seller)
     await db.commit()
