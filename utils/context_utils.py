@@ -1,17 +1,26 @@
-import hashlib
-
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import jwt
 from fastapi import HTTPException, Request
-
+from cryptography.fernet import Fernet
 from core.config import settings
+import os
 
-def hash_password(plain_password: str) -> str:
-    return hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
 
-def verify_password(plain_password: str, hashed_password: str) -> str:
-    return hash_password(plain_password) == hashed_password
+load_dotenv()
+
+KASPI_SECRET_KEY = os.getenv("KASPI_SECRET_KEY")
+fernet = Fernet(KASPI_SECRET_KEY.encode())
+
+def decrypt_password(encrypted: str) -> str:
+    return fernet.decrypt(encrypted.encode()).decode()
+
+def encrypt_password(plain_password: str) -> str:
+    return fernet.encrypt(plain_password.encode()).decode()
+
+# def verify_password(plain_password: str, hashed_password: str) -> str:
+#     return hash_password(plain_password) == hashed_password
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> tuple:
     to_encode = data.copy()

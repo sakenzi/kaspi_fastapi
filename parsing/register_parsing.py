@@ -38,7 +38,6 @@ class KaspiParser:
         if self.driver:
             self.driver.quit()
 
-
     def parse_kaspi(self, kaspi_email: str, kaspi_password: str):
         self.open_url()
         email_input = self.driver.find_element(by=By.ID, value='user_email_field')

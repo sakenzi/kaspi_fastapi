@@ -3,7 +3,7 @@ from sqlalchemy import select
 from app.api.auth.schemas.create import SellerRegister, SellerLogin
 from model.models import Seller
 from fastapi import HTTPException
-from utils.context_utils import hash_password, create_access_token, verify_password
+from utils.context_utils import encrypt_password, create_access_token, decrypt_password
 from app.api.auth.schemas.response import TokenResponse
 from parsing.register_parsing import KaspiParser
 
@@ -24,7 +24,7 @@ async def register(seller: SellerRegister, db: AsyncSession):
     finally:
         parser.close_driver()
     
-    hashed_password = hash_password(seller.kaspi_password)
+    hashed_password = encrypt_password(seller.kaspi_password)
 
     new_seller = Seller(
         kaspi_email=seller.kaspi_email,
@@ -49,9 +49,17 @@ async def login(kaspi_email: str, kaspi_password: str, db: AsyncSession):
 
     seller = stmt.scalar_one_or_none()
 
-    if not seller or not verify_password(kaspi_password, seller.kaspi_password):
+    if not seller:
         raise HTTPException(status_code=401, detail="Неверный пароль или пользователь")
-    
+
+    try:
+        decrypted_password = decrypt_password(seller.kaspi_password)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Ошибка дешифровки пароля")
+
+    if decrypted_password != kaspi_password:
+        raise HTTPException(status_code=401, detail="Неверный пароль")
+
     access_token, expire_time = create_access_token(data={"sub": str(seller.id)})
 
     return TokenResponse(

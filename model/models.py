@@ -18,21 +18,27 @@ class Product(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
-    vender_code = Column(Integer, nullable=False)
-    min_price = Column(Float, nullable=True)
-    max_price = Column(Float, nullable=True)
-    step = Column(Float, nullable=True)
-    product_link = Column(Text, nullable=True)
+    vender_code = Column(String(200), nullable=False)
+    market_link = Column(Text, nullable=False)
+    name_product = Column(Text, nullable=False)
+    pieces_product = Column(Integer, nullable=True)
+    image = Column(Text, nullable=False)
+    price = Column(Integer, nullable=False)
 
     seller_products = relationship("SellerProduct", back_populates="product")
+    product_comparisons = relationship("ProductComparison", back_populates="product")
 
-class Competitor(Base):
-    __tablename__ = "competitors"
+class ProductComparison(Base):
+    __tablename__ = "product_comparisons"
 
     id = Column(Integer, primary_key=True, index=True)
-    vender_code_pay = Column(Integer, nullable=False)
-    vender_code_market = Column(Integer, nullable=True)
-    price = Column(Float, nullable=True)
+    min_price = Column(Integer, nullable=True)
+    max_price = Column(Integer, nullable=True)
+    step = Column(Integer, nullable=True)
+
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+
+    product = relationship("Product", back_populates="product_comparisons")
 
 class SellerProduct(Base):
     __tablename__ = "seller_products"
@@ -43,3 +49,4 @@ class SellerProduct(Base):
 
     product = relationship("Product", back_populates="seller_products")
     seller = relationship("Seller", back_populates="seller_products")
+
