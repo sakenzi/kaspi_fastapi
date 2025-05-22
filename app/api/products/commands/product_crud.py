@@ -3,12 +3,12 @@ from sqlalchemy import select
 from fastapi import HTTPException
 from app.api.products.schemas.create import ProductComparisonCreate
 from parsing.add_product_parsing import KaspiParser
-from model.models import Seller, Product, SellerProduct
+from model.models import Seller, Product, SellerProduct, ProductComparison
 from utils.config_utils import decrypt_password
 from app.api.products.schemas.resposnse import ProductResponse
 
 
-async def parse_product_data(db: AsyncSession, seller_id: int, vender_code: str) -> ProductResponse:
+async def parse_product_data(db: AsyncSession, seller_id: int, vender_code: str, min_price: int, max_price: int, step: int) -> ProductResponse:
     query = await db.execute(select(Seller).where(Seller.id == seller_id))
     seller = query.scalar_one_or_none()
 
@@ -60,6 +60,15 @@ async def parse_product_data(db: AsyncSession, seller_id: int, vender_code: str)
         db.add(seller_product)
         await db.commit()
         await db.refresh(seller_product)
+
+    comparison = ProductComparison(
+        min_price=min_price,
+        max_price=max_price,
+        step=step,
+        product_id=product.id
+    )
+    db.add(comparison)
+    await db.commit()
 
     return {
         "vender_code": product.vender_code,

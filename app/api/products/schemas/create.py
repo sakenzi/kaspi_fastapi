@@ -12,3 +12,8 @@ class ProductComparisonCreate(BaseModel):
     max_price: int
     step: int
 
+class AddProductCreate(BaseModel):
+    vender_code: str
+    min_price: int
+    max_price: int
+    step: int
