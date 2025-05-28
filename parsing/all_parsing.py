@@ -48,12 +48,13 @@ class KaspiParser:
         print(competitor_price)
         self.open_url()
         email_input = self.driver.find_element(by=By.ID, value='user_email_field')
-        email_input.send_keys('')
+        email_input.send_keys()
 
         confirm_button = self.driver.find_element(By.XPATH, '/html/body/div/main/div/div/div/div[2]/section/section/form/button')
         confirm_button.click()
+        
         password_input = self.driver.find_element(by=By.ID, value='password_field')
-        password_input.send_keys('')
+        password_input.send_keys()
         confirm_button.click()
 
         button_to_list_product_page = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div[2]/div/div/ul[2]/li[1]/a/div/div')))

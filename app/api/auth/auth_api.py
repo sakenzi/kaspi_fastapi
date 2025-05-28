@@ -11,6 +11,7 @@ router = APIRouter()
 @router.post(
     "/seller/register",
     summary='Регистрация пользователя',
+    response_model=TokenResponse
 
 )
 async def register_seller(seller: SellerRegister, db: AsyncSession = Depends(get_db)):
