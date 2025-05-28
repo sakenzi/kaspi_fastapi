@@ -6,6 +6,8 @@ from parsing.add_product_parsing import KaspiParser
 from model.models import Seller, Product, SellerProduct, ProductComparison
 from utils.config_utils import decrypt_password
 from app.api.products.schemas.resposnse import ProductResponse
+from typing import List
+from sqlalchemy.orm import joinedload
 
 
 async def parse_product_data(db: AsyncSession, seller_id: int, vender_code: str, min_price: int, max_price: int, step: int) -> ProductResponse:
@@ -79,3 +81,21 @@ async def parse_product_data(db: AsyncSession, seller_id: int, vender_code: str,
         "market_link": product.market_link,
         "seller_product_id": seller_product.id,
     }
+
+
+async def get_all_products(seller_id: int, db: AsyncSession) -> List[SellerProduct]:
+    query = (
+        select(SellerProduct)
+        .where(SellerProduct.seller_id == seller_id)
+        .options(
+            joinedload(SellerProduct.product),
+            joinedload(SellerProduct.seller)
+        )
+    )
+    result = await db.execute(query)
+    seller_products = result.scalars().all()
+    
+    if not seller_products:
+        raise HTTPException(status_code=404, detail="No products found for this seller")
+    
+    return seller_products

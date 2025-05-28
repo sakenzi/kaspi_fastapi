@@ -16,3 +16,31 @@ class OneProductResponse(BaseModel):
 
 class ProductResponse(BaseModel):
     product: OneProductResponse
+
+
+class SellerResponse(BaseModel):
+    id: int
+
+    class Config:
+        from__attributes = True
+
+
+class ProductsResponse(BaseModel):
+    vender_code: str
+    market_link: str
+    name_product: str
+    pieces_product: Optional[int]
+    image: str
+    price: int
+    
+    class Config:
+        from__attributes = True
+        
+
+class SellerProductResponse(BaseModel):
+    id: int
+    seller: SellerResponse
+    product: ProductsResponse
+
+    class Config:
+        from__attributes = True

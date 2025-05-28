@@ -11,7 +11,6 @@ class SellerResponse(BaseModel):
 
 class ProductResponse(BaseModel):
     vender_code: str
-    market_link: str
 
     class Config:
         from_attributes: True
