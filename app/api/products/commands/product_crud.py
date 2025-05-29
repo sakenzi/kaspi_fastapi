@@ -101,7 +101,7 @@ async def get_all_products_with_comparisons(seller_id: int, db: AsyncSession) ->
     if not seller_products:
         raise HTTPException(status_code=404, detail="No products found for this seller")
     
-    for sp in seller_products:
-        logger.debug(f"SellerProduct ID: {sp.id}, Product: {sp.product.__dict__}, Comparisons: {[comp.__dict__ for comp in sp.product.product_comparisons]}")
+    # for sp in seller_products:
+    #     logger.debug(f"SellerProduct ID: {sp.id}, Product: {sp.product.__dict__}, Comparisons: {[comp.__dict__ for comp in sp.product.product_comparisons]}")
     
     return seller_products

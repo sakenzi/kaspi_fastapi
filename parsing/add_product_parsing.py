@@ -57,51 +57,63 @@ class KaspiParser:
         
         button_for_search = self.driver.find_element(By.XPATH, '/html/body/div/section/div[2]/div/div[4]/div[1]/div[1]/div/div/div/div/p/button')
         button_for_search.click()
+        time.sleep(1)
 
-        link_to_product_page = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/section/div[2]/div/section/div/div[1]/table/tbody/tr[1]/td[2]/div/div/div[2]/p[1]/a')))
-        link_to_product_page.click() 
+        product_rows = self.wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'p.subtitle.is-6')))
 
-        article_number = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div[3]/div[2]/div/div[2]/div[2]')))
-        code = article_number.text
-        print(code)
-        if vender_code != code:
-            print("Артикул не совпадает!")
-            return None
+        for index, row in enumerate(product_rows, start=1):
+            try:
+                row_text = row.text
+                lines = row_text.split('\n')
+                if len(lines) < 2:
+                    print(f"Product {index}: Invalid format, skipping")
+                    continue
+                code = lines[1].strip()  
+                print(f"Checking product {index}: vender_code = {code}")
 
-        price_element = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div[2]/div[2]/div/div/div[1]/div[2]/div')))
-        cleaned_price = re.sub(r'\D', '', price_element.text)
-        price = int(cleaned_price)
-        print(price)
+                if vender_code == code:
+                    link_to_product_page = row.find_element(By.XPATH, './ancestor::tr//a')  
+                    link_to_product_page.click()
 
-        pieces = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/span[1]')))
-        cleaned_pieces = re.sub(r'\D', '', pieces.text)
-        pieces_product = int(cleaned_pieces)
-        print(pieces_product)
+                    price_element = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div[2]/div[2]/div/div/div[1]/div[2]/div')))
+                    cleaned_price = re.sub(r'\D', '', price_element.text)
+                    price = int(cleaned_price)
+                    print(f"Price: {price}")
 
-        image_product = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'img.thumbnail')))
-        image = image_product.get_attribute("src")
-        print(image)
+                    pieces = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div[2]/div[2]/div/div/div[2]/div[2]/div/span[1]')))
+                    cleaned_pieces = re.sub(r'\D', '', pieces.text)
+                    pieces_product = int(cleaned_pieces)
+                    print(f"Pieces: {pieces_product}")
 
-        product_name = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div[3]/div[2]/div/div[1]/div[2]/div[1]')))
-        name_product = product_name.text
-        print(name_product)
+                    image_product = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'img.thumbnail')))
+                    image = image_product.get_attribute("src")
+                    print(f"Image: {image}")
 
-        link = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div[3]/div[2]/div/div[1]/div[2]/div[2]/a')))
-        market_link = link.get_attribute("href")
-        print(market_link)
+                    product_name = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div[3]/div[2]/div/div[1]/div[2]/div[1]')))
+                    name_product = product_name.text
+                    print(f"Product Name: {name_product}")
 
-        return {
-            "vender_code": vender_code,
-            "price": price,
-            "pieces_product": pieces_product,
-            "image": image,
-            "name_product": name_product,
-            "market_link": market_link
-        }
+                    link = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[1]/div[3]/div[2]/div/div[1]/div[2]/div[2]/a')))
+                    market_link = link.get_attribute("href")
+                    print(f"Market link: {market_link}")
+
+                    return {
+                        "vender_code": vender_code,
+                        "price": price,
+                        "pieces_product": pieces_product,
+                        "image": image,
+                        "name_product": name_product,
+                        "market_link": market_link
+                    }
+            except Exception as e:
+                continue
+
+        print(f"Товар с кодом продавца не найден {vender_code}")
+        return None
 
     def run(self):
         self.setup_driver()
-        result = self.parse_kaspi(398)
+        result = self.parse_kaspi()
         return result
     
 if __name__ == "__main__":
@@ -109,3 +121,6 @@ if __name__ == "__main__":
         parser = KaspiParser()
         parser.run()
     main()
+
+# <p class="subtitle is-6"> Hi-Black HB-Ink-E-100-Cyan голубой <br> 105125780_Kmag <br><div data-v-54910e88="" data-v-e669e65c="" class="mt-2"> Остатки: 8 </div><!----><!----></p>
+# <p class="subtitle is-6"> Europrint EPC-CE314A черный <br> 512 <br><div data-v-54910e88="" data-v-e669e65c="" class="mt-2 low-stock-status"> Остатки: 3 </div><!----><!----></p>
