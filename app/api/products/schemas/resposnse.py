@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field
+from typing import Optional, List
 
 
 class OneProductResponse(BaseModel):
@@ -14,16 +14,28 @@ class OneProductResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class ProductResponse(BaseModel):
     product: OneProductResponse
+
+    class Config:
+        from_attributes = True
 
 
 class SellerResponse(BaseModel):
     id: int
 
     class Config:
-        from__attributes = True
+        from_attributes = True
 
+class ProductComparisonResponse(BaseModel):
+    id: int
+    min_price: Optional[int]
+    max_price: Optional[int]
+    step: Optional[int]
+
+    class Config:
+        from_attributes = True
 
 class ProductsResponse(BaseModel):
     vender_code: str
@@ -32,10 +44,10 @@ class ProductsResponse(BaseModel):
     pieces_product: Optional[int]
     image: str
     price: int
-    
+    comparisons: Optional[List[ProductComparisonResponse]] = Field(default=None, alias="product_comparisons")
+
     class Config:
-        from__attributes = True
-        
+        from_attributes = True
 
 class SellerProductResponse(BaseModel):
     id: int
@@ -43,4 +55,4 @@ class SellerProductResponse(BaseModel):
     product: ProductsResponse
 
     class Config:
-        from__attributes = True
+        from_attributes = True

@@ -49,4 +49,3 @@ class SellerProduct(Base):
 
     product = relationship("Product", back_populates="seller_products")
     seller = relationship("Seller", back_populates="seller_products")
-

@@ -5,4 +5,4 @@ from model.models import ProductComparison, Seller, SellerProduct, Product
 
 
 async def get_all_products(db: AsyncSession):
-    stmt = 
+    query = (select())

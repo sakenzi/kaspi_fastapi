@@ -7,8 +7,12 @@ from model.models import Seller, Product, SellerProduct, ProductComparison
 from utils.config_utils import decrypt_password
 from app.api.products.schemas.resposnse import ProductResponse
 from typing import List
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
+import logging
 
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 async def parse_product_data(db: AsyncSession, seller_id: int, vender_code: str, min_price: int, max_price: int, step: int) -> ProductResponse:
     query = await db.execute(select(Seller).where(Seller.id == seller_id))
@@ -82,14 +86,13 @@ async def parse_product_data(db: AsyncSession, seller_id: int, vender_code: str,
         "seller_product_id": seller_product.id,
     }
 
-
-async def get_all_products(seller_id: int, db: AsyncSession) -> List[SellerProduct]:
+async def get_all_products_with_comparisons(seller_id: int, db: AsyncSession) -> List[SellerProduct]:
     query = (
         select(SellerProduct)
         .where(SellerProduct.seller_id == seller_id)
         .options(
-            joinedload(SellerProduct.product),
-            joinedload(SellerProduct.seller)
+            selectinload(SellerProduct.product).selectinload(Product.product_comparisons),
+            selectinload(SellerProduct.seller)
         )
     )
     result = await db.execute(query)
@@ -97,5 +100,8 @@ async def get_all_products(seller_id: int, db: AsyncSession) -> List[SellerProdu
     
     if not seller_products:
         raise HTTPException(status_code=404, detail="No products found for this seller")
+    
+    for sp in seller_products:
+        logger.debug(f"SellerProduct ID: {sp.id}, Product: {sp.product.__dict__}, Comparisons: {[comp.__dict__ for comp in sp.product.product_comparisons]}")
     
     return seller_products

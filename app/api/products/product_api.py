@@ -1,12 +1,16 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, Request, HTTPException
-from app.api.products.schemas.resposnse import ProductResponse, SellerProductResponse, ProductsResponse, SellerResponse
-from app.api.products.commands.product_crud import parse_product_data, get_all_products
+from app.api.products.schemas.resposnse import ProductResponse, SellerProductResponse
+from app.api.products.commands.product_crud import parse_product_data, get_all_products_with_comparisons
 from database.db import get_db
 from utils.context_utils import validate_access_token, get_access_token
 from app.api.products.schemas.create import AddProductCreate
 from typing import List
+import logging
 
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -27,9 +31,10 @@ async def parse_product(request: Request, body: AddProductCreate, db: AsyncSessi
     data = await parse_product_data(db=db, seller_id=seller_id, vender_code=body.vender_code, min_price=body.min_price, max_price=body.max_price, step=body.step)
     return {"product": data}
 
+
 @router.get(
     "/all-products",
-    summary="Получить все товары пользователя",
+    summary="Получить все товары пользователя с данными сравнений",
     response_model=List[SellerProductResponse]
 )
 async def get_products(request: Request, db: AsyncSession = Depends(get_db)):
@@ -40,8 +45,10 @@ async def get_products(request: Request, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid access token")
     
     try:
-        seller_id = int(seller_id_str)  # Convert string to int
+        seller_id = int(seller_id_str)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid seller_id: must be a valid integer")
     
-    return await get_all_products(seller_id=seller_id, db=db)
+    seller_products = await get_all_products_with_comparisons(seller_id=seller_id, db=db)
+    logger.debug(f"Returning seller_products: {seller_products}")
+    return seller_products
