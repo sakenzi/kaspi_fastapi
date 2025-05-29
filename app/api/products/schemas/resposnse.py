@@ -44,6 +44,7 @@ class ProductsResponse(BaseModel):
     pieces_product: Optional[int]
     image: str
     price: int
+    is_active: bool
     comparisons: Optional[List[ProductComparisonResponse]] = Field(default=None, alias="product_comparisons")
 
     class Config:

@@ -24,6 +24,7 @@ class Product(Base):
     pieces_product = Column(Integer, nullable=True)
     image = Column(Text, nullable=False)
     price = Column(Integer, nullable=False)
+    is_active = Column(Boolean, default=False)
 
     seller_products = relationship("SellerProduct", back_populates="product")
     product_comparisons = relationship("ProductComparison", back_populates="product")
