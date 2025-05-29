@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
+from datetime import datetime
 
 
 class OneProductResponse(BaseModel):
@@ -45,6 +46,7 @@ class ProductsResponse(BaseModel):
     image: str
     price: int
     is_active: bool
+    updated_at: datetime
     comparisons: Optional[List[ProductComparisonResponse]] = Field(default=None, alias="product_comparisons")
 
     class Config:

@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update, func
 from fastapi import HTTPException
-from app.api.products.schemas.create import ProductComparisonCreate
 from parsing.add_product_parsing import KaspiParser
 from model.models import Seller, Product, SellerProduct, ProductComparison
 from utils.config_utils import decrypt_password
@@ -9,6 +8,9 @@ from app.api.products.schemas.resposnse import ProductResponse
 from typing import List
 from sqlalchemy.orm import joinedload, selectinload
 import logging
+from sqlalchemy.exc import IntegrityError
+from typing import Optional
+from datetime import datetime
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -105,3 +107,31 @@ async def get_all_products_with_comparisons(seller_id: int, db: AsyncSession) ->
     #     logger.debug(f"SellerProduct ID: {sp.id}, Product: {sp.product.__dict__}, Comparisons: {[comp.__dict__ for comp in sp.product.product_comparisons]}")
     
     return seller_products
+
+async def update_is_active(seller_id: int, product_id: int, is_active: Optional[bool], db: AsyncSession) -> Product:
+    query = (
+        select(Product)
+        .join(SellerProduct, SellerProduct.product_id == product_id)
+        .where(SellerProduct.seller_id == seller_id, Product.id == product_id)
+    )
+    result = await db.execute(query)
+    product = result.scalars().first()
+
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    if is_active is not None:
+        stmt = (
+            update(Product)
+            .where(Product.id == product_id)
+            .values(is_active=is_active, updated_at=func.now())
+        )
+        try:
+            await db.execute(stmt)
+            await db.commit()
+            await db.refresh(product)
+        except IntegrityError:
+            await db.rollback(product)
+            raise HTTPException(status_code=400, detail='failed')
+        
+    return product
