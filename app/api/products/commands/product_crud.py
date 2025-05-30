@@ -92,7 +92,9 @@ async def parse_product_data(db: AsyncSession, seller_id: int, vender_code: str,
 async def get_all_products_with_comparisons(
     db: AsyncSession, 
     seller_id: int, 
-    is_active: bool 
+    is_active: bool,
+    skip: int = 0,
+    limit: int = 20
 ) -> List[SellerProduct]:
     query = (
         select(SellerProduct)
@@ -107,6 +109,8 @@ async def get_all_products_with_comparisons(
     if is_active is not None:
         query = query.filter(Product.is_active == is_active)
 
+    query = query.offset(skip).limit(limit)
+    
     result = await db.execute(query)
     seller_products = result.scalars().all()
     

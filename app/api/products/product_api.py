@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request, HTTPException, Query
 from app.api.products.schemas.resposnse import ProductResponse, SellerProductResponse
 from app.api.products.commands.product_crud import (parse_product_data, get_all_products_with_comparisons, update_is_active, 
                                                     delete_product, update_product_comparison)
@@ -43,6 +43,8 @@ async def parse_product(request: Request, body: AddProductCreate, db: AsyncSessi
 async def get_products(
     request: Request, 
     is_active: Optional[bool] = None,
+    skip: int = Query(0, ge=0, description="Количество продуктов для пропуска"),
+    limit: int = Query(20, ge=1, description="Максимальное количество продуктов"),
     db: AsyncSession = Depends(get_db)
 ):
     access_token = await get_access_token(request)
@@ -56,7 +58,7 @@ async def get_products(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid seller_id: must be a valid integer")
     
-    seller_products = await get_all_products_with_comparisons(seller_id=seller_id, is_active=is_active, db=db)
+    seller_products = await get_all_products_with_comparisons(seller_id=seller_id, is_active=is_active, db=db, skip=skip, limit=limit)
     logger.debug(f"Returning seller_products: {seller_products}")
     return seller_products
 
