@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, func
+from sqlalchemy import select, update, func, delete
 from fastapi import HTTPException
 from parsing.add_product_parsing import KaspiParser
 from model.models import Seller, Product, SellerProduct, ProductComparison
@@ -135,3 +135,24 @@ async def update_is_active(seller_id: int, product_id: int, is_active: Optional[
             raise HTTPException(status_code=400, detail='failed')
         
     return product
+
+async def delete_product(seller_id: int, product_id: int, db: AsyncSession):
+    query = (
+        select(Product)
+        .join(SellerProduct, SellerProduct.product_id == product_id)
+        .where(SellerProduct.seller_id == seller_id, Product.id == product_id)
+        )
+    result = await db.execute(query)
+    product = result.scalars().first()
+
+    if not product:
+        raise HTTPException(status_code=404, detail="Продукт не найден")
+    
+    await db.execute(
+        delete(Product)
+        .filter(Product.id == product_id)
+    )
+
+    await db.commit()
+    return {"message": f"Продукт с ID {product_id} удален"}
+    

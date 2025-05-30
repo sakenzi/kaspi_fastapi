@@ -38,7 +38,7 @@ class ProductComparison(Base):
     max_price = Column(Integer, nullable=True)
     step = Column(Integer, nullable=True)
 
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete='CASCADE'), nullable=False)
 
     product = relationship("Product", back_populates="product_comparisons")
 
@@ -46,8 +46,8 @@ class SellerProduct(Base):
     __tablename__ = "seller_products"
 
     id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
-    seller_id = Column(Integer, ForeignKey("sellers.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete='CASCADE'), nullable=False, )
+    seller_id = Column(Integer, ForeignKey("sellers.id", ondelete='CASCADE'), nullable=False)
 
     product = relationship("Product", back_populates="seller_products")
     seller = relationship("Seller", back_populates="seller_products")
