@@ -28,7 +28,7 @@ class KaspiParser:
     def setup_driver(self):
         self.driver = webdriver.Chrome(options=self.options, service=self.service)
         self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        self.wait = WebDriverWait(self.driver, 8)
+        self.wait = WebDriverWait(self.driver, 12)
 
     def open_url(self):
         self.driver.get('https://idmc.shop.kaspi.kz/login')

@@ -100,7 +100,12 @@ async def delete(request: Request, product_id: int, db: AsyncSession = Depends(g
     summary="Обновить цифровые данные продукта",
     response_model=ProductComparisonUpdate
 )
-async def update_digital_data(request: Request, product_id: int, product: ProductComparisonUpdate, db: AsyncSession = Depends(get_db)):
+async def update_digital_data(
+    request: Request, 
+    product_id: int, 
+    product: ProductComparisonUpdate, 
+    db: AsyncSession = Depends(get_db)
+):
     access_token = await get_access_token(request)
     seller_id_str = await validate_access_token(access_token)
 
@@ -112,12 +117,14 @@ async def update_digital_data(request: Request, product_id: int, product: Produc
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid seller_id: must be a valid integer")
     
-    product_digital_data = await update_product_comparison(
-        db=db, 
-        seller_id=seller_id, 
-        product_id=product_id, 
-        min_price=product.min_price,
-        max_price=product.max_price,
-        step=product.step
-    )
-    return product_digital_data
+    product_data = product.dict(exclude_unset=True)
+    updated_product = await update_product_comparison(seller_id, product_id, product_data, db)
+    # product_digital_data = await update_product_comparison(
+    #     db=db, 
+    #     seller_id=seller_id, 
+    #     product_id=product_id, 
+    #     min_price=product.min_price,
+    #     max_price=product.max_price,
+    #     step=product.step
+    # )
+    return updated_product

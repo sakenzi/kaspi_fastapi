@@ -79,6 +79,7 @@ async def parse_product_data(db: AsyncSession, seller_id: int, vender_code: str,
     await db.commit()
 
     return {
+        "id": product.id,
         "vender_code": product.vender_code,
         "name_product": product.name_product,
         "price": product.price,
@@ -159,10 +160,11 @@ async def delete_product(seller_id: int, product_id: int, db: AsyncSession):
 async def update_product_comparison(
     seller_id: int, 
     product_id: int,
-    min_price: int,
-    max_price: int,
-    step: int, 
-    db: AsyncSession) -> ProductComparison:
+    # min_price: int,
+    # max_price: int,
+    # step: int, 
+    product_data: dict,
+    db: AsyncSession):
     query = (
         select(ProductComparison).filter(ProductComparison.product_id == product_id)
         .join(SellerProduct, SellerProduct.product_id == product_id)
@@ -174,17 +176,23 @@ async def update_product_comparison(
     if not product_comparison:
         raise HTTPException(status_code=404, detail="Product not found")
     
-    stmt = (
-        update(ProductComparison)
-        .where(ProductComparison.product_id == product_id)
-        .values(min_price=min_price, max_price=max_price, step=step)
-    )
+    for key, value in product_data.items():
+        if value is not None:
+            setattr(product_comparison, key, value)
+
+        
+    # stmt = (
+    #     update(ProductComparison)
+    #     .where(ProductComparison.product_id == product_id)
+    #     .values(min_price=min_price, max_price=max_price, step=step)
+    # )
     try:
-        await db.execute(stmt)
+        # await db.execute()
         await db.commit()
         await db.refresh(product_comparison)
+        return product_comparison
     except IntegrityError:
-        await db.rollback(product_comparison)
+        await db.rollback()
         raise HTTPException(status_code=400, detail='failed')
         
-    return product_comparison
+    # return product_comparison

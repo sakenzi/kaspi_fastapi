@@ -4,6 +4,7 @@ from datetime import datetime
 
 
 class OneProductResponse(BaseModel):
+    id: int
     vender_code: str
     name_product: str
     price: int
@@ -39,6 +40,7 @@ class ProductComparisonResponse(BaseModel):
         from_attributes = True
 
 class ProductsResponse(BaseModel):
+    id: int
     vender_code: str
     market_link: str
     name_product: str

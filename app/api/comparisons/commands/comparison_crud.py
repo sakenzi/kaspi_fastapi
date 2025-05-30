@@ -37,4 +37,4 @@ async def update_product_parsing(product_id: int, product_data: dict, db: AsyncS
         return product_parsing
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(status_code=400, detail="Email already exists")
+        raise HTTPException(status_code=400, detail="")
