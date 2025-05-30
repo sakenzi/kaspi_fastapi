@@ -6,7 +6,7 @@ from app.api.products.commands.product_crud import (parse_product_data, get_all_
 from database.db import get_db
 from utils.context_utils import validate_access_token, get_access_token
 from app.api.products.schemas.create import AddProductCreate
-from typing import List
+from typing import List, Optional
 import logging
 from app.api.products.schemas.update import ProductUpdate, ProductComparisonUpdate
 from app.api.products.schemas.delete import ProductDelete
@@ -40,7 +40,11 @@ async def parse_product(request: Request, body: AddProductCreate, db: AsyncSessi
     summary="Получить все товары пользователя с данными сравнений",
     response_model=List[SellerProductResponse]
 )
-async def get_products(request: Request, db: AsyncSession = Depends(get_db)):
+async def get_products(
+    request: Request, 
+    is_active: Optional[bool] = None,
+    db: AsyncSession = Depends(get_db)
+):
     access_token = await get_access_token(request)
     seller_id_str = await validate_access_token(access_token)
     
@@ -52,7 +56,7 @@ async def get_products(request: Request, db: AsyncSession = Depends(get_db)):
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid seller_id: must be a valid integer")
     
-    seller_products = await get_all_products_with_comparisons(seller_id=seller_id, db=db)
+    seller_products = await get_all_products_with_comparisons(seller_id=seller_id, is_active=is_active, db=db)
     logger.debug(f"Returning seller_products: {seller_products}")
     return seller_products
 
@@ -119,12 +123,4 @@ async def update_digital_data(
     
     product_data = product.dict(exclude_unset=True)
     updated_product = await update_product_comparison(seller_id, product_id, product_data, db)
-    # product_digital_data = await update_product_comparison(
-    #     db=db, 
-    #     seller_id=seller_id, 
-    #     product_id=product_id, 
-    #     min_price=product.min_price,
-    #     max_price=product.max_price,
-    #     step=product.step
-    # )
     return updated_product

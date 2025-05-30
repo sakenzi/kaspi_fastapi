@@ -89,24 +89,30 @@ async def parse_product_data(db: AsyncSession, seller_id: int, vender_code: str,
         "seller_product_id": seller_product.id,
     }
 
-async def get_all_products_with_comparisons(seller_id: int, db: AsyncSession) -> List[SellerProduct]:
+async def get_all_products_with_comparisons(
+    db: AsyncSession, 
+    seller_id: int, 
+    is_active: bool 
+) -> List[SellerProduct]:
     query = (
         select(SellerProduct)
+        .join(Product, SellerProduct.product_id == Product.id)
         .where(SellerProduct.seller_id == seller_id)
         .options(
             selectinload(SellerProduct.product).selectinload(Product.product_comparisons),
             selectinload(SellerProduct.seller)
         )
     )
+
+    if is_active is not None:
+        query = query.filter(Product.is_active == is_active)
+
     result = await db.execute(query)
     seller_products = result.scalars().all()
     
     if not seller_products:
         raise HTTPException(status_code=404, detail="No products found for this seller")
-    
-    # for sp in seller_products:
-    #     logger.debug(f"SellerProduct ID: {sp.id}, Product: {sp.product.__dict__}, Comparisons: {[comp.__dict__ for comp in sp.product.product_comparisons]}")
-    
+
     return seller_products
 
 async def update_is_active(seller_id: int, product_id: int, is_active: Optional[bool], db: AsyncSession) -> Product:
@@ -160,9 +166,6 @@ async def delete_product(seller_id: int, product_id: int, db: AsyncSession):
 async def update_product_comparison(
     seller_id: int, 
     product_id: int,
-    # min_price: int,
-    # max_price: int,
-    # step: int, 
     product_data: dict,
     db: AsyncSession):
     query = (
@@ -180,19 +183,10 @@ async def update_product_comparison(
         if value is not None:
             setattr(product_comparison, key, value)
 
-        
-    # stmt = (
-    #     update(ProductComparison)
-    #     .where(ProductComparison.product_id == product_id)
-    #     .values(min_price=min_price, max_price=max_price, step=step)
-    # )
     try:
-        # await db.execute()
         await db.commit()
         await db.refresh(product_comparison)
         return product_comparison
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=400, detail='failed')
-        
-    # return product_comparison
