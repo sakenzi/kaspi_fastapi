@@ -156,3 +156,35 @@ async def delete_product(seller_id: int, product_id: int, db: AsyncSession):
     await db.commit()
     return {"message": f"Продукт с ID {product_id} удален"}
     
+async def update_product_comparison(
+    seller_id: int, 
+    product_id: int,
+    min_price: int,
+    max_price: int,
+    step: int, 
+    db: AsyncSession) -> ProductComparison:
+    query = (
+        select(ProductComparison).filter(ProductComparison.product_id == product_id)
+        .join(SellerProduct, SellerProduct.product_id == product_id)
+        .where(SellerProduct.seller_id == seller_id, Product.id == product_id)
+    )
+    result = await db.execute(query)
+    product_comparison = result.scalars().first()
+
+    if not product_comparison:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    stmt = (
+        update(ProductComparison)
+        .where(ProductComparison.product_id == product_id)
+        .values(min_price=min_price, max_price=max_price, step=step)
+    )
+    try:
+        await db.execute(stmt)
+        await db.commit()
+        await db.refresh(product_comparison)
+    except IntegrityError:
+        await db.rollback(product_comparison)
+        raise HTTPException(status_code=400, detail='failed')
+        
+    return product_comparison

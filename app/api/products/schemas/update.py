@@ -7,3 +7,12 @@ class ProductUpdate(BaseModel):
 
     class Config:
         from_attributes=True
+
+
+class ProductComparisonUpdate(BaseModel):
+    min_price: Optional[int] = None
+    max_price: Optional[int] = None
+    step: Optional[int] = None
+
+    class Config:
+        from_attributes=True
