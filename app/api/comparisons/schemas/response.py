@@ -21,6 +21,7 @@ class ProductComparisonResponse(BaseModel):
 
 
 class ProductsResponse(BaseModel):
+    market_link: str
     vender_code: str
     comparisons: Optional[List[ProductComparisonResponse]] = Field(default=None, alias="product_comparisons")
 
