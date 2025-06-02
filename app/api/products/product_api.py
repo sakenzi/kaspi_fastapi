@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, Request, HTTPException, Query
 from app.api.products.schemas.resposnse import ProductResponse, SellerProductResponse
-from app.api.products.commands.product_crud import (parse_product_data, get_all_products_with_comparisons, update_is_active, 
-                                                    delete_product, update_product_comparison)
+from app.api.products.commands.product_crud import (parse_product_data, get_list_products_with_comparisons, update_is_active, 
+                                                    delete_product, update_product_comparison, get_all_products_with_comparisons)
 from database.db import get_db
 from utils.context_utils import validate_access_token, get_access_token
 from app.api.products.schemas.create import AddProductCreate
@@ -36,8 +36,8 @@ async def parse_product(request: Request, body: AddProductCreate, db: AsyncSessi
 
 
 @router.get(
-    "/all-products",
-    summary="Получить все товары пользователя с данными сравнений",
+    "/list-products",
+    summary="Получить все товары с фильтром пользователя с данными сравнений",
     response_model=List[SellerProductResponse]
 )
 async def get_products(
@@ -58,7 +58,7 @@ async def get_products(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid seller_id: must be a valid integer")
     
-    seller_products = await get_all_products_with_comparisons(seller_id=seller_id, is_active=is_active, db=db, skip=skip, limit=limit)
+    seller_products = await get_list_products_with_comparisons(seller_id=seller_id, is_active=is_active, db=db, skip=skip, limit=limit)
     logger.debug(f"Returning seller_products: {seller_products}")
     return seller_products
 
@@ -126,3 +126,27 @@ async def update_digital_data(
     product_data = product.dict(exclude_unset=True)
     updated_product = await update_product_comparison(seller_id, product_id, product_data, db)
     return updated_product
+
+@router.get(
+    "/all-products",
+    summary="Получить все товары пользователя с данными сравнений",
+    response_model=List[SellerProductResponse]
+)
+async def get_products(
+    request: Request, 
+    db: AsyncSession = Depends(get_db)
+):
+    access_token = await get_access_token(request)
+    seller_id_str = await validate_access_token(access_token)
+    
+    if not seller_id_str or not isinstance(seller_id_str, str):
+        raise HTTPException(status_code=401, detail="Invalid access token")
+    
+    try:
+        seller_id = int(seller_id_str)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid seller_id: must be a valid integer")
+    
+    seller_products = await get_all_products_with_comparisons(seller_id=seller_id, db=db)
+    logger.debug(f"Returning seller_products: {seller_products}")
+    return seller_products

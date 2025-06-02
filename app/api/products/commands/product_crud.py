@@ -89,7 +89,7 @@ async def parse_product_data(db: AsyncSession, seller_id: int, vender_code: str,
         "seller_product_id": seller_product.id,
     }
 
-async def get_all_products_with_comparisons(
+async def get_list_products_with_comparisons(
     db: AsyncSession, 
     seller_id: int, 
     is_active: bool,
@@ -194,3 +194,25 @@ async def update_product_comparison(
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=400, detail='failed')
+    
+async def get_all_products_with_comparisons(
+    db: AsyncSession, 
+    seller_id: int, 
+) -> List[SellerProduct]:
+    query = (
+        select(SellerProduct)
+        .join(Product, SellerProduct.product_id == Product.id)
+        .where(SellerProduct.seller_id == seller_id)
+        .options(
+            selectinload(SellerProduct.product).selectinload(Product.product_comparisons),
+            selectinload(SellerProduct.seller)
+        )
+    )
+    
+    result = await db.execute(query)
+    seller_products = result.scalars().all()
+    
+    if not seller_products:
+        raise HTTPException(status_code=404, detail="No products found for this seller")
+
+    return seller_products

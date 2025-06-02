@@ -1,5 +1,3 @@
-from datetime import datetime
-import json
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -17,10 +15,6 @@ class KaspiParser:
         options.add_argument("--disable-extensions")
         options.add_argument('--ignore-certificate-errors')
         options.add_argument('--ignore-ssl-errors')
-        # options.add_argument('--no-sandbox')
-        # options.add_argument('--disable-dev-shm-usage')
-        # options.add_argument('--disable-gpu')
-        # options.add_argument('headless')
         options.add_experimental_option('useAutomationExtension', False)
         options.add_experimental_option("excludeSwitches", ["enable-automation"])
         self.service = Service(ChromeDriverManager().install())
@@ -40,59 +34,107 @@ class KaspiParser:
         if self.driver:
             self.driver.quit()
 
-
-    def parse_kaspi(self, vender_code, min_price, max_price, step):
-        competitor_price = start_for_prices('https://kaspi.kz/shop/p/europrint-npg-28-c-exv-14-chernyi-12901130/')
-        if competitor_price == True:
-            return "Все круто"
-        print(competitor_price)
+    def parse_kaspi(self, products):
         self.open_url()
-        email_input = self.driver.find_element(by=By.ID, value='user_email_field')
+        email_input = self.wait.until(EC.presence_of_element_located((By.ID, 'user_email_field')))
         email_input.send_keys()
 
-        confirm_button = self.driver.find_element(By.XPATH, '/html/body/div/main/div/div/div/div[2]/section/section/form/button')
+        confirm_button = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/main/div/div/div/div[2]/section/section/form/button')))
         confirm_button.click()
         
-        password_input = self.driver.find_element(by=By.ID, value='password_field')
+        password_input = self.wait.until(EC.presence_of_element_located((By.ID, 'password_field')))
         password_input.send_keys()
         confirm_button.click()
 
-        button_to_list_product_page = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/div[2]/div/div/ul[2]/li[1]/a/div/div')))
+        button_to_list_product_page = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/div[2]/div/div/ul[2]/li[1]/a/div/div')))
         button_to_list_product_page.click()
 
-        input_for_search_product = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[4]/div[1]/div[1]/div/div/div/div/div/input')))
-        input_for_search_product.send_keys(vender_code)
-        
-        button_for_search = self.driver.find_element(By.XPATH, '/html/body/div/section/div[2]/div/div[4]/div[1]/div[1]/div/div/div/div/p/button')
-        button_for_search.click()
+        for product in products:
+            vender_code = product['vender_code']
+            min_price = product['min_price']
+            max_price = product['max_price']
+            step = product['step']
 
-        link_to_product_page = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/section/div[2]/div/section/div/div[1]/table/tbody/tr[1]/td[2]/div/div/div[2]/p[1]/a')))
-        link_to_product_page.click() 
+            print(f"Код во время парсинга: {vender_code}")
+            
+            input_for_search_product = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[4]/div[1]/div[1]/div/div/div/div/div/input')))
+            input_for_search_product.clear()  
+            input_for_search_product.send_keys(vender_code)
+            
+            button_for_search = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/section/div[2]/div/div[4]/div[1]/div[1]/div/div/div/div/p/button')))
+            button_for_search.click()
 
-        button_to_open_update_window=self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/section/div[2]/div/div[1]/div[2]/div[2]/div/button')))
-        button_to_open_update_window.click()
+            product_rows = self.wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'p.subtitle.is-6')))
 
-        input_price = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[3]/div/div[2]/div/section/div/div/div[1]/div[2]/div/input')))
-        massiv = input_price.get_attribute('value').split()
-        current_price = int(massiv[0] + massiv[1])
-        if current_price >= int(competitor_price):
-            future_price = current_price - step
-            if current_price >= min_price and current_price <= max_price:
-                input_price.clear()
-                input_price.send_keys(future_price)
-                button_for_confirm_update = self.driver.find_element(By.XPATH, '/html/body/div/section/div[2]/div/div[3]/div/div[2]/div/section/div/div/div[3]/button')
-                button_for_confirm_update.click()
-                print('Цена на товар изменен на', future_price)
-            else:
-                print('превышен лимит')
+            for index, row in enumerate(product_rows, start=1):
+                try:
+                    row_text = row.text
+                    lines = row_text.split('\n')
+                    if len(lines) < 2:
+                        print(f"Product {index}: Invalid format, skipping")
+                        continue
+                    code = lines[1].strip()  
+                    print(f"Checking product {index}: vender_code = {code}")
 
-        time.sleep(5)
+                    if vender_code == code:
+                        link_to_product_page = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/section/div[2]/div/section/div/div[1]/table/tbody/tr[1]/td[2]/div/div/div[2]/p[1]/a')))
+                        link_to_product_page.click()
+
+                        button_to_open_update_window = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/section/div[2]/div/div[1]/div[2]/div[2]/div/button')))
+                        button_to_open_update_window.click()
+
+                        input_price = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[3]/div/div[2]/div/section/div/div/div[1]/div[2]/div/input')))
+                        massiv = input_price.get_attribute('value').split()
+                        current_price = int(''.join(massiv))  
+                        competitor_price = start_for_prices('https://kaspi.kz/shop/p/europrint-npg-28-c-exv-14-chernyi-12901130/')
+                        
+                        if competitor_price is True:
+                            print(f"Код {vender_code}: Все хорошо, обновление цен не требуется.")
+                        else:
+                            competitor_price = int(competitor_price)
+                            if current_price >= competitor_price:
+                                future_price = current_price - step
+                                if min_price <= future_price <= max_price:
+                                    input_price.clear()
+                                    input_price.send_keys(future_price)
+                                    button_for_confirm_update = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/section/div[2]/div/div[3]/div/div[2]/div/section/div/div/div[3]/button')))
+                                    button_for_confirm_update.click()
+                                    print(f"Код {vender_code}: Цена обновлена до {future_price}")
+                                else:
+                                    print(f"Код {vender_code}: Цена {future_price} превышает установленные пределы (min: {min_price}, max: {max_price})")
+                            else:
+                                print(f"Код {vender_code}: Текущая цена {current_price} цена уже ниже, чем у конкурентов {competitor_price}")
+
+                        button_exit_product = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/section/div[2]/div/div[3]/div/div[2]/div/div/img')))
+                        button_exit_product.click()
+                        button_to_list_product_page = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/div[2]/div/div/ul[2]/li[1]/a/div/div')))
+                        button_to_list_product_page.click()
+
+                        try:
+                            button_to_list_product_page = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/div[2]/div/div/ul[2]/li[1]/a/div/div')))
+                            button_to_list_product_page.click()
+                        except Exception as nav_error:
+                            print(f"Ошибка при возврате к списку продуктовt: {str(nav_error)}")
+                            continue
+
+                        time.sleep(2)  
+
+                    return "Processing completed"
+            
+                except Exception as e:
+                    continue
 
     def run(self):
         self.setup_driver()
-        result = self.parse_kaspi(2168, 2620, 2700, 1)
+        products = [
+            {'vender_code': '593', 'min_price': 4280, 'max_price': 4290, 'step': 1},
+            {'vender_code': '2168', 'min_price': 2500, 'max_price': 2800, 'step': 2},
+            {'vender_code': '3151', 'min_price': 2712, 'max_price': 2713, 'step': 1},
+        ]
+        result = self.parse_kaspi(products)
+        self.close_driver()
         return result
-    
+
 
 if __name__ == "__main__":
     def main():
