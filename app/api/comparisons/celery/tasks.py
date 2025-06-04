@@ -1,18 +1,58 @@
 from app.api.comparisons.celery.celery_app import celery
+from app.api.comparisons.commands.comparison_crud import get_all_products_with_parsing_sync
+from parsing.all_parsing import KaspiParser
 from database.db import SessioLocal
+import logging
+from utils.context_utils import decrypt_password
 
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 @celery.task
-def start_training_task(
-    kaspi_email: str, 
-    kaspi_password: str, 
-    vender_code: str, 
-    min_price: int,
-    max_price: int,
-    step: int
-):
-    db = SessioLocal()
-    try: 
-        print()
-    finally:
-        db.close()
+def parse_kaspi_products():
+    def run_parser():
+        with SessioLocal() as db:
+            logger.info("Получение продуктов из базы данных")
+            seller_products = get_all_products_with_parsing_sync(db)
+            
+            seller_products_map = {}
+            for sp in seller_products:
+                seller_id = sp.seller_id
+                if seller_id not in seller_products_map:
+                    decrypted_password = decrypt_password(sp.seller.kaspi_password)
+                    seller_products_map[seller_id] = {
+                        'kaspi_email': sp.seller.kaspi_email,
+                        'kaspi_password': decrypted_password,
+                        'products': []
+                    }
+                product_dict = {
+                    'vender_code': sp.product.vender_code,
+                    'min_price': sp.product.product_comparisons[0].min_price if sp.product.product_comparisons else None,
+                    'max_price': sp.product.product_comparisons[0].max_price if sp.product.product_comparisons else None,
+                    'step': sp.product.product_comparisons[0].step if sp.product.product_comparisons else None,
+                    'market_link': sp.product.market_link
+                }
+                if all([product_dict['min_price'], product_dict['max_price'], product_dict['step'], product_dict['market_link']]):
+                    seller_products_map[seller_id]['products'].append(product_dict)
+                else:
+                    logger.warning(f"Пропуск продукта {sp.product.vender_code}: отсутствуют необходимые данные")
+
+            results = []
+            parser = KaspiParser()
+            for seller_id, seller_data in seller_products_map.items():
+                result = parser.run(
+                    products=seller_data['products'],
+                    kaspi_email=seller_data['kaspi_email'],
+                    kaspi_password=seller_data['kaspi_password']
+                )
+                results.append(result)
+
+            return results
+
+    try:
+        logger.info("Запуск задачи parse_kaspi_products")
+        return run_parser()
+    except Exception as e:
+        logger.error(f"Ошибка выполнения задачи parse_kaspi_products: {str(e)}")
+        raise

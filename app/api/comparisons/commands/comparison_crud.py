@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from model.models import SellerProduct, Product
 from typing import List
-from sqlalchemy.orm import selectinload, joinedload
+from sqlalchemy.orm import selectinload, joinedload, Session
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 
@@ -18,6 +18,18 @@ async def get_all_products_with_parsing(db: AsyncSession) -> List[SellerProduct]
     result = await db.execute(query)
     products = result.scalars().all()
 
+    return products
+
+def get_all_products_with_parsing_sync(db: Session) -> List[SellerProduct]:
+    query = (
+        select(SellerProduct)
+        .options(
+            selectinload(SellerProduct.product).selectinload(Product.product_comparisons),
+            joinedload(SellerProduct.seller)
+        )
+    )
+    result = db.execute(query)
+    products = result.scalars().all()
     return products
 
 async def update_product_parsing(product_id: int, product_data: dict, db: AsyncSession):
