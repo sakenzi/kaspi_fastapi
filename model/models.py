@@ -1,6 +1,5 @@
-from sqlalchemy import Column, DateTime, Integer, String, ForeignKey, Boolean, Text, Float, func
+from sqlalchemy import Column, DateTime, Integer, String, ForeignKey, Boolean, Text, func
 from sqlalchemy.orm import relationship
-from datetime import datetime
 from database.db import Base
 
 
@@ -25,6 +24,7 @@ class Product(Base):
     image = Column(Text, nullable=False)
     price = Column(Integer, nullable=False)
     is_active = Column(Boolean, default=False)
+    first_market = Column(String(250), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
 
     seller_products = relationship("SellerProduct", back_populates="product")

@@ -12,9 +12,6 @@ from app.api.products.schemas.update import ProductUpdate, ProductComparisonUpda
 from app.api.products.schemas.delete import ProductDelete
 
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
 router = APIRouter()
 
 @router.post(
@@ -59,7 +56,6 @@ async def get_products(
         raise HTTPException(status_code=400, detail="Invalid seller_id: must be a valid integer")
     
     seller_products = await get_list_products_with_comparisons(seller_id=seller_id, is_active=is_active, db=db, skip=skip, limit=limit)
-    logger.debug(f"Returning seller_products: {seller_products}")
     return seller_products
 
 @router.put(
@@ -148,5 +144,4 @@ async def get_products(
         raise HTTPException(status_code=400, detail="Invalid seller_id: must be a valid integer")
     
     seller_products = await get_all_products_with_comparisons(seller_id=seller_id, db=db)
-    logger.debug(f"Returning seller_products: {seller_products}")
     return seller_products

@@ -5,6 +5,7 @@ from typing import Optional
 class ProductComparisonCreate(BaseModel):
     article_number: int
     market_link: int
+    first_market: str
     name_product: str
     image: str
     price: int

@@ -104,7 +104,7 @@ class KaspiParser:
                                     if competitor_price is True:
                                         logger.info(f"Код {vender_code}: Все хорошо, обновление цен не требуется.")
                                     else:
-                                        competitor_price = int(competitor_price)
+                                        competitor_price = int(competitor_price)    
                                         if current_price >= competitor_price:
                                             future_price = current_price - step
                                             if min_price <= future_price <= max_price:

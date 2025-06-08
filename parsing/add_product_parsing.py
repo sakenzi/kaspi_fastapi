@@ -6,6 +6,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 import re
+from parsing.all_parsing3 import KaspiMarketForPricesParser
+from parsing.all_parsing3 import start_for_prices
+
 
 class KaspiParser:
     def __init__(self):
@@ -28,7 +31,7 @@ class KaspiParser:
     def setup_driver(self):
         self.driver = webdriver.Chrome(options=self.options, service=self.service)
         self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        self.wait = WebDriverWait(self.driver, 12)
+        self.wait = WebDriverWait(self.driver, 14)
 
     def open_url(self):
         self.driver.get('https://idmc.shop.kaspi.kz/login')
@@ -97,13 +100,23 @@ class KaspiParser:
                     market_link = link.get_attribute("href")
                     print(f"Market link: {market_link}")
 
+                    market_parser = KaspiMarketForPricesParser()
+                    # parser = start_for_prices(market_link)
+                    market_parser.setup_driver()
+                    market_parser.open_url(market_link)
+                    market_parser.parse_kaspi('k-MAG')
+                    market_parser.close_driver()
+
+                    print(f"First_sellr: {market_parser.first_seller}")
+
                     return {
                         "vender_code": vender_code,
                         "price": price,
                         "pieces_product": pieces_product,
                         "image": image,
                         "name_product": name_product,
-                        "market_link": market_link
+                        "market_link": market_link,
+                        "first_market": market_parser.first_seller
                     }
             except Exception as e:
                 continue
@@ -121,6 +134,3 @@ if __name__ == "__main__":
         parser = KaspiParser()
         parser.run()
     main()
-
-# <p class="subtitle is-6"> Hi-Black HB-Ink-E-100-Cyan голубой <br> 105125780_Kmag <br><div data-v-54910e88="" data-v-e669e65c="" class="mt-2"> Остатки: 8 </div><!----><!----></p>
-# <p class="subtitle is-6"> Europrint EPC-CE314A черный <br> 512 <br><div data-v-54910e88="" data-v-e669e65c="" class="mt-2 low-stock-status"> Остатки: 3 </div><!----><!----></p>
