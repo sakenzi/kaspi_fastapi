@@ -7,6 +7,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 import time
 from parsing.all_parsing2 import start_for_prices
 import logging
+import re
 
 
 logger = logging.getLogger(__name__)
@@ -96,15 +97,30 @@ class KaspiParser:
                                 button_to_open_update_window.click()
 
                                 input_price = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div/section/div[2]/div/div[3]/div/div[2]/div/section/div/div/div[1]/div[2]/div/input')))
-                                massiv = input_price.get_attribute('value').split()
-                                current_price = int(''.join(massiv))
+                                current_price = int(re.sub(r'\D', '', input_price.get_attribute('value')))
                                 
                                 try:
-                                    competitor_price = start_for_prices(market_link)
-                                    if competitor_price is True:
-                                        logger.info(f"Код {vender_code}: Все хорошо, обновление цен не требуется.")
+                                    competitor_info = start_for_prices(market_link)
+                                    if competitor_info is None:
+                                        logger.error(f"Код {vender_code}: Не удалось получить данные о конкурентах")
+                                        continue
+
+                                    if competitor_info['is_kmag_first']:
+                                        second_seller_price = competitor_info['second_seller_price']
+                                        if second_seller_price == 0:
+                                            logger.warning(f"Код {vender_code}: Цена второго продавца недоступна")
+                                            continue
+                                        future_price = current_price + step
+                                        if future_price <= min(max_price, second_seller_price):
+                                            input_price.clear()
+                                            input_price.send_keys(future_price)
+                                            button_for_confirm_update = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/section/div[2]/div/div[3]/div/div[2]/div/section/div/div/div[3]/button')))
+                                                # button_for_confirm_update.click()  
+                                            logger.info(f"Код {vender_code}: Цена обновлена до {future_price}")
+                                        else:
+                                            logger.warning(f"Код {vender_code}: Цена {future_price} превышает пределы (min: {min_price}, max: {max_price})")
                                     else:
-                                        competitor_price = int(competitor_price)    
+                                        competitor_price = competitor_info['competitor_price']
                                         if current_price >= competitor_price:
                                             future_price = current_price - step
                                             if min_price <= future_price <= max_price:
@@ -112,14 +128,13 @@ class KaspiParser:
                                                 input_price.send_keys(future_price)
                                                 button_for_confirm_update = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/section/div[2]/div/div[3]/div/div[2]/div/section/div/div/div[3]/button')))
                                                 # button_for_confirm_update.click()  
-                                                logger.info(f"Код {vender_code}: Цена обновлена до {future_price}")
+                                                logger.info(f"Код {vender_code}: Цена обновлена до {future_price} (конкурент: {competitor_price})")
                                             else:
-                                                logger.warning(f"Код {vender_code}: Цена {future_price} превышает пределы (min: {min_price}, max: {max_price})")
+                                                logger.warning(f"Код {vender_code}: Цена {future_price} вне пределов (min: {min_price}, max: {max_price})")
                                         else:
-                                            logger.info(f"Код {vender_code}: Текущая цена {current_price} уже ниже, чем у конкурентов {competitor_price}")
-                                except ValueError as ve:
-                                    continue
+                                            logger.info(f"Код {vender_code}: Текущая цена {current_price} уже ниже конкурента {competitor_price}")
                                 except Exception as e:
+                                    logger.error(f"Код {vender_code}: Ошибка при обновлении цены: {e}")
                                     continue
 
                                 button_exit_product = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/section/div[2]/div/div[3]/div/div[2]/div/div/img')))

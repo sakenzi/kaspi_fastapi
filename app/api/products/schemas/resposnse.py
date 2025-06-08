@@ -11,6 +11,7 @@ class OneProductResponse(BaseModel):
     pieces_product: int
     image: str
     market_link: str
+    first_market: str
     seller_product_id: int
 
     class Config:
@@ -49,6 +50,7 @@ class ProductsResponse(BaseModel):
     price: int
     is_active: bool
     updated_at: datetime
+    first_market: str
     comparisons: Optional[List[ProductComparisonResponse]] = Field(default=None, alias="product_comparisons")
 
     class Config:

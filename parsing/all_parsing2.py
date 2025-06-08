@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+import re
 
 
 class KaspiMarketForPricesParser:
@@ -34,30 +35,44 @@ class KaspiMarketForPricesParser:
             self.driver.quit()
 
     def parse_kaspi(self, name_market):
-        first_seller_name = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[3]/div/div[3]/div/div/div[1]/div/div/div[1]/table/tbody/tr[1]/td[1]/a')))
-        self.first_seller_name = first_seller_name.get_attribute('textContent')
-        if self.first_seller_name == name_market:
-            return True
-        else:
-            competitor_price = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[3]/div/div[3]/div/div/div[1]/div/div/div[1]/table/tbody/tr[1]/td[4]/div')
-            massiv = competitor_price.get_attribute('textContent').split()
-            print(self.first_seller_name, "у него цена", massiv[0]+massiv[1])
-            price = massiv[0] + massiv[1]
-            return int(price)
+        try:
+            first_seller_name = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'table tbody tr:first-child td a')))
+            self.first_seller_name = first_seller_name.get_attribute('textContent').strip()
+
+            if self.first_seller_name == name_market:
+                try:
+                    second_seller_price_elem = self.wait.until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[3]/div/div[3]/div/div/div[1]/div/div/div[1]/table/tbody/tr[2]/td[5]/div')))
+                    price_text = second_seller_price_elem.get_attribute('textContent')
+                    price = re.sub(r'\D', '', price_text)
+                    return {'is_kmag_first': True, 'second_seller_price': int(price) if price else 0}
+                except Exception as e:
+                    return {'is_kmag_first': True, 'second_seller_price': 0}
+            else:
+                competitor_price_elem = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'table tbody tr:first-child td:nth-child(4) div')))
+                price_text = competitor_price_elem.get_attribute('textContent')
+                price = re.sub(r'\D', '', price_text)
+                return {'is_kmag_first': False, 'competitor_price': int(price) if price else 0}
+        except Exception as e:
+            return None
 
     @property
     def first_seller(self):
         return self.first_seller_name
     
-    def run(self):
-        result =  self.parse_kaspi()
+    def run(self, name_market):
+        self.setup_driver()
+        try:
+            result = self.parse_kaspi(name_market)
+        finally:
+            self.close_driver()
         return result
-    
+
 def start_for_prices(url):
     parser = KaspiMarketForPricesParser()
     parser.setup_driver()
-    parser.open_url(url)
-    result = parser.parse_kaspi('k-MAG')
-    parser.close_driver()
+    try:
+        parser.open_url(url)
+        result = parser.parse_kaspi('k-MAG')
+    finally:
+        parser.close_driver()
     return result
-    # main()
