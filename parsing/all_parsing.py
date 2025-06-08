@@ -5,10 +5,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import time
+import re
 from parsing.all_parsing2 import start_for_prices
 import logging
-import re
-
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -41,6 +40,8 @@ class KaspiParser:
             self.driver.quit()
 
     def parse_kaspi(self, products, kaspi_email: str, kaspi_password: str):
+        updated_prices = []  
+        try:
             self.open_url()
             email_input = self.wait.until(EC.presence_of_element_located((By.ID, 'user_email_field')))
             email_input.send_keys(kaspi_email)
@@ -56,6 +57,7 @@ class KaspiParser:
             button_to_list_product_page.click()
 
             for product in products:
+                product_id = product.get('product_id')  
                 vender_code = product['vender_code']
                 min_price = product['min_price']
                 max_price = product['max_price']
@@ -116,22 +118,24 @@ class KaspiParser:
                                             input_price.clear()
                                             input_price.send_keys(future_price)
                                             button_for_confirm_update = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/section/div[2]/div/div[3]/div/div[2]/div/section/div/div/div[3]/button')))
-                                            # button_for_confirm_update.click()  # Раскомментировать для реального обновления
+                                            button_for_confirm_update.click()  # Применяем цену на сайте
                                             logger.info(f"Код {vender_code}: Цена обновлена до {future_price} (второй продавец: {second_seller_price})")
+                                            updated_prices.append({'product_id': product_id, 'new_price': future_price})
                                         else:
                                             logger.warning(f"Код {vender_code}: Цена {future_price} вне пределов (min: {min_price}, max: {max_price})")
                                     else:
                                         competitor_price = competitor_info['competitor_price']
                                         if current_price >= competitor_price:
                                             future_price = current_price - step
-                                            if min_price <= future_price <= max_price:
+                                            if min_price <= future_price:
                                                 input_price.clear()
                                                 input_price.send_keys(future_price)
                                                 button_for_confirm_update = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/section/div[2]/div/div[3]/div/div[2]/div/section/div/div/div[3]/button')))
-                                                # button_for_confirm_update.click()
+                                                button_for_confirm_update.click()
                                                 logger.info(f"Код {vender_code}: Цена обновлена до {future_price} (конкурент: {competitor_price})")
+                                                updated_prices.append({'product_id': product_id, 'new_price': future_price})
                                             else:
-                                                logger.warning(f"Код {vender_code}: Цена {future_price} вне пределов (min: {min_price}, max: {max_price})")
+                                                logger.warning(f"Код {vender_code}: Цена {future_price} ниже минимальной (min: {min_price})")
                                         else:
                                             logger.info(f"Код {vender_code}: Текущая цена {current_price} уже ниже конкурента {competitor_price}")
                                 except Exception as e:
@@ -162,12 +166,20 @@ class KaspiParser:
                     continue
 
             logger.info("Обработка завершена")
-            return "Обработка завершена"
+            return updated_prices  
+
+        except Exception as e:
+            logger.error(f"Ошибка в parse_kaspi: {e}")
+            raise
+        finally:
+            self.close_driver()
 
     def run(self, products=None, kaspi_email=None, kaspi_password=None):
         self.setup_driver()
-        result = self.parse_kaspi(products, kaspi_email, kaspi_password)
-        self.close_driver()
+        try:
+            result = self.parse_kaspi(products or [], kaspi_email, kaspi_password)
+        finally:
+            self.close_driver()
         return result
 
 if __name__ == "__main__":

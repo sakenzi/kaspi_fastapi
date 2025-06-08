@@ -50,3 +50,22 @@ async def update_product_parsing(product_id: int, product_data: dict, db: AsyncS
     except IntegrityError:
         await db.rollback()
         raise HTTPException(status_code=400, detail="")
+    
+def update_product_parsing_sync(product_id: int, product_data: dict, db: Session):
+    query = (
+        select(Product).filter(Product.id == product_id)
+    )
+    result = db.execute(query)
+    product_parsing = result.scalars().first()
+
+    for key, value in product_data.items():
+        if value is not None:
+            setattr(product_parsing, key, value)
+
+    try:
+        db.commit()
+        db.refresh(product_parsing)
+        return product_parsing
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="")

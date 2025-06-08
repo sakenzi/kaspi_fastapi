@@ -1,10 +1,10 @@
 from app.api.comparisons.celery.celery_app import celery
-from app.api.comparisons.commands.comparison_crud import get_all_products_with_parsing_sync
+from app.api.comparisons.commands.comparison_crud import get_all_products_with_parsing_sync, update_product_parsing_sync
 from parsing.all_parsing import KaspiParser
 from database.db import SessioLocal
 import logging
 from utils.context_utils import decrypt_password
-
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -27,6 +27,7 @@ def parse_kaspi_products():
                         'products': []
                     }
                 product_dict = {
+                    'product_id': sp.product.id,  # Добавляем product_id
                     'vender_code': sp.product.vender_code,
                     'min_price': sp.product.product_comparisons[0].min_price if sp.product.product_comparisons else None,
                     'max_price': sp.product.product_comparisons[0].max_price if sp.product.product_comparisons else None,
@@ -46,6 +47,21 @@ def parse_kaspi_products():
                     kaspi_email=seller_data['kaspi_email'],
                     kaspi_password=seller_data['kaspi_password']
                 )
+                if isinstance(result, list):
+                    for product_result in result:
+                        if isinstance(product_result, dict) and 'product_id' in product_result and 'new_price' in product_result:
+                            try:
+                                update_product_parsing_sync(
+                                    product_id=product_result['product_id'],
+                                    product_data={
+                                        'price': product_result['new_price'],
+                                        'updated_at': datetime.utcnow()
+                                    },
+                                    db=db
+                                )
+                                logger.info(f"Обновлена цена для продукта ID {product_result['product_id']} до {product_result['new_price']}")
+                            except Exception as e:
+                                logger.error(f"Ошибка обновления цены для продукта ID {product_result['product_id']}: {str(e)}")
                 results.append(result)
 
             return results
