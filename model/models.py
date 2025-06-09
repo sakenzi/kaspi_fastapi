@@ -25,6 +25,7 @@ class Product(Base):
     price = Column(Integer, nullable=False)
     is_active = Column(Boolean, default=False)
     first_market = Column(String(250), nullable=False)
+    price_first_market = Column(Integer, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
 
     seller_products = relationship("SellerProduct", back_populates="product")

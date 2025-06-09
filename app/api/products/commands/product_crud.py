@@ -45,7 +45,8 @@ async def parse_product_data(db: AsyncSession, seller_id: int, vender_code: str,
             pieces_product=result["pieces_product"],
             image=result["image"],
             market_link=result["market_link"],
-            first_market=result["first_market"]
+            first_market=result["first_market"],
+            price_first_market=result["price_first_market"]
         )
         db.add(product)
         await db.commit()
@@ -85,6 +86,7 @@ async def parse_product_data(db: AsyncSession, seller_id: int, vender_code: str,
         "image": product.image,
         "market_link": product.market_link,
         "first_market": product.first_market,
+        "price_first_market": product.price_first_market,
         "seller_product_id": seller_product.id,
     }
 

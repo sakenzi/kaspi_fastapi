@@ -51,6 +51,7 @@ class ProductsResponse(BaseModel):
     is_active: bool
     updated_at: datetime
     first_market: str
+    price_first_market: int
     comparisons: Optional[List[ProductComparisonResponse]] = Field(default=None, alias="product_comparisons")
 
     class Config:

@@ -116,7 +116,8 @@ class KaspiParser:
                         "image": image,
                         "name_product": name_product,
                         "market_link": market_link,
-                        "first_market": market_parser.first_seller
+                        "first_market": market_parser.first_seller,
+                        "price_first_market": market_parser.price_first_market
                     }
             except Exception as e:
                 continue

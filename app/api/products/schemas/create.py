@@ -6,6 +6,7 @@ class ProductComparisonCreate(BaseModel):
     article_number: int
     market_link: int
     first_market: str
+    price_first_market: int
     name_product: str
     image: str
     price: int
