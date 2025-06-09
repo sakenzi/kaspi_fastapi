@@ -15,7 +15,7 @@ from app.api.products.schemas.delete import ProductDelete
 router = APIRouter()
 
 @router.post(
-    "/add-product",
+    "/add",
     summary="Добавить товар для мониторинга",
     response_model=ProductResponse
 )
@@ -33,7 +33,7 @@ async def parse_product(request: Request, body: AddProductCreate, db: AsyncSessi
 
 
 @router.get(
-    "/list-products",
+    "/list",
     summary="Получить все товары с фильтром пользователя с данными сравнений",
     response_model=List[SellerProductResponse]
 )
@@ -124,7 +124,7 @@ async def update_digital_data(
     return updated_product
 
 @router.get(
-    "/all-products",
+    "/all",
     summary="Получить все товары пользователя с данными сравнений",
     response_model=List[SellerProductResponse]
 )
