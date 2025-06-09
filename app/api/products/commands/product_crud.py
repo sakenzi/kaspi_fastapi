@@ -93,7 +93,8 @@ async def get_list_products_with_comparisons(
     seller_id: int, 
     is_active: bool,
     skip: int = 0,
-    limit: int = 20
+    limit: int = 20,
+    search_query: str = None
 ) -> List[SellerProduct]:
     query = (
         select(SellerProduct)
@@ -107,6 +108,9 @@ async def get_list_products_with_comparisons(
 
     if is_active is not None:
         query = query.filter(Product.is_active == is_active)
+
+    if search_query:
+        query = query.filter(Product.vender_code.ilike(f"%{search_query}%"))
 
     query = query.offset(skip).limit(limit)
     

@@ -42,6 +42,7 @@ async def get_products(
     is_active: Optional[bool] = None,
     skip: int = Query(0, ge=0, description="Количество продуктов для пропуска"),
     limit: int = Query(20, ge=1, description="Максимальное количество продуктов"),
+    search_query: Optional[str] = Query(None, description="Поиск по vender_code"),
     db: AsyncSession = Depends(get_db)
 ):
     access_token = await get_access_token(request)
@@ -55,7 +56,7 @@ async def get_products(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid seller_id: must be a valid integer")
     
-    seller_products = await get_list_products_with_comparisons(seller_id=seller_id, is_active=is_active, db=db, skip=skip, limit=limit)
+    seller_products = await get_list_products_with_comparisons(seller_id=seller_id, is_active=is_active, db=db, skip=skip, limit=limit, search_query=search_query)
     return seller_products
 
 @router.put(
