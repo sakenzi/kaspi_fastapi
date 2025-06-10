@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY . .
 
+RUN apt-get update && apt-get install -y wait-for-it
 RUN pip install -r requirements.txt
 
 CMD ["python", "main.py"]

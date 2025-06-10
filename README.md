@@ -15,11 +15,25 @@
     ```
 
 # Работа с docker
-1. Запуск docker контейнера
+1. Создание 
+```bash
+    docker build -t docker_image_name -f Dockerfile
+```
+2. Запуск docker контейнера
 ```bash
     docker run --name=fastapi_image_container -p 1111:8001 fastapi_images
 ```
-2. App файл
+3. App файл
 ```bash
     docker exec -it fastapi_image_container bash
+```
+
+# Работа с docker-compose
+1. Создание 
+```bash
+    docker-compose up -d
+```
+2. Смотреть логи
+```bash
+    docker logs docker-container-name
 ```
