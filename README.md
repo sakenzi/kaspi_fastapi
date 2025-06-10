@@ -15,6 +15,11 @@
     ```
 
 # Работа с docker
+1. Запуск docker контейнера
 ```bash
     docker run --name=fastapi_image_container -p 1111:8001 fastapi_images
+```
+2. App файл
+```bash
+    docker exec -it fastapi_image_container bash
 ```
