@@ -6,8 +6,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 import re
-from parsing.all_parsing2 import start_for_prices
+from parsing.all_parsing2 import start_for_prices, KaspiMarketForPricesParser
 import logging
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -26,6 +27,7 @@ class KaspiParser:
         self.options = options
         self.driver = None
         self.wait = None
+        self.market = KaspiMarketForPricesParser()
 
     def setup_driver(self):
         self.driver = webdriver.Chrome(options=self.options, service=self.service)
@@ -41,6 +43,8 @@ class KaspiParser:
 
     def parse_kaspi(self, products, kaspi_email: str, kaspi_password: str):
         updated_prices = []  
+        updated_first_market = []
+        updated_price_first_market = []
         try:
             self.open_url()
             email_input = self.wait.until(EC.presence_of_element_located((By.ID, 'user_email_field')))
@@ -118,9 +122,11 @@ class KaspiParser:
                                             input_price.clear()
                                             input_price.send_keys(future_price)
                                             button_for_confirm_update = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/section/div[2]/div/div[3]/div/div[2]/div/section/div/div/div[3]/button')))
-                                            button_for_confirm_update.click()  # Применяем цену на сайте
+                                            # button_for_confirm_update.click()  # Применяем цену на сайте
                                             logger.info(f"Код {vender_code}: Цена обновлена до {future_price} (второй продавец: {second_seller_price})")
                                             updated_prices.append({'product_id': product_id, 'new_price': future_price})
+                                            updated_first_market.append({'product_id': product_id, 'first_market': self.market.first_seller_name})
+                                            updated_price_first_market.append({'product_id': product_id, 'price_first_market': self.market.price_first_market})
                                         else:
                                             logger.warning(f"Код {vender_code}: Цена {future_price} вне пределов (min: {min_price}, max: {max_price})")
                                     else:
@@ -131,9 +137,11 @@ class KaspiParser:
                                                 input_price.clear()
                                                 input_price.send_keys(future_price)
                                                 button_for_confirm_update = self.wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div/section/div[2]/div/div[3]/div/div[2]/div/section/div/div/div[3]/button')))
-                                                button_for_confirm_update.click()
+                                                # button_for_confirm_update.click()
                                                 logger.info(f"Код {vender_code}: Цена обновлена до {future_price} (конкурент: {competitor_price})")
                                                 updated_prices.append({'product_id': product_id, 'new_price': future_price})
+                                                updated_first_market.append({'product_id': product_id, 'first_market': self.market.first_seller_name})
+                                                updated_price_first_market.append({'product_id': product_id, 'price_first_market': self.market.price_first_market})
                                             else:
                                                 logger.warning(f"Код {vender_code}: Цена {future_price} ниже минимальной (min: {min_price})")
                                         else:
@@ -166,7 +174,7 @@ class KaspiParser:
                     continue
 
             logger.info("Обработка завершена")
-            return updated_prices  
+            return updated_prices, updated_first_market, updated_price_first_market
 
         except Exception as e:
             logger.error(f"Ошибка в parse_kaspi: {e}")

@@ -6,6 +6,7 @@ import logging
 from utils.context_utils import decrypt_password
 from datetime import datetime
 
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -27,7 +28,7 @@ def parse_kaspi_products():
                         'products': []
                     }
                 product_dict = {
-                    'product_id': sp.product.id,  # Добавляем product_id
+                    'product_id': sp.product.id,
                     'vender_code': sp.product.vender_code,
                     'min_price': sp.product.product_comparisons[0].min_price if sp.product.product_comparisons else None,
                     'max_price': sp.product.product_comparisons[0].max_price if sp.product.product_comparisons else None,
@@ -47,21 +48,39 @@ def parse_kaspi_products():
                     kaspi_email=seller_data['kaspi_email'],
                     kaspi_password=seller_data['kaspi_password']
                 )
-                if isinstance(result, list):
-                    for product_result in result:
-                        if isinstance(product_result, dict) and 'product_id' in product_result and 'new_price' in product_result:
-                            try:
-                                update_product_parsing_sync(
-                                    product_id=product_result['product_id'],
-                                    product_data={
-                                        'price': product_result['new_price'],
-                                        'updated_at': datetime.utcnow()
-                                    },
-                                    db=db
-                                )
-                                logger.info(f"Обновлена цена для продукта ID {product_result['product_id']} до {product_result['new_price']}")
-                            except Exception as e:
-                                logger.error(f"Ошибка обновления цены для продукта ID {product_result['product_id']}: {str(e)}")
+                if isinstance(result, tuple) and len(result) == 3:
+                    updated_prices, updated_first_market, updated_price_first_market = result
+                    update_data = {}
+                    for price_item in updated_prices:
+                        if 'product_id' in price_item and 'new_price' in price_item:
+                            update_data[price_item['product_id']] = {
+                                'new_price': price_item['new_price']
+                            }
+                    for fm_item in updated_first_market:
+                        if 'product_id' in fm_item and 'first_market' in fm_item:
+                            update_data.setdefault(fm_item['product_id'], {}).update({
+                                'first_market': fm_item['first_market']
+                            })
+                    for pfm_item in updated_price_first_market:
+                        if 'product_id' in pfm_item and 'price_first_market' in pfm_item:
+                            update_data.setdefault(pfm_item['product_id'], {}).update({
+                                'price_first_market': pfm_item['price_first_market']
+                            })
+                    for product_id, data in update_data.items():
+                        try:
+                            update_product_parsing_sync(
+                                product_id=product_id,
+                                product_data={
+                                    'price': data['new_price'],
+                                    'first_market': data.get('first_market', None),
+                                    'price_first_market': data.get('price_first_market', None),
+                                    'updated_at': datetime.utcnow()
+                                },
+                                db=db
+                            )
+                            logger.info(f"Обновлена цена для продукта ID {product_id} до {data['new_price']}")
+                        except Exception as e:
+                            logger.error(f"Ошибка обновления продукта ID {product_id}: {str(e)}")
                 results.append(result)
 
             return results
