@@ -43,14 +43,11 @@ class KaspiMarketForPricesParser:
             self.first_seller_name = first_seller_name.get_attribute('textContent').strip()
             logger.info(f"First seller: {self.first_seller_name}")
 
-            if self.first_seller_name == name_market:
-                return True
-            else:
-                competitor_price = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'table tbody tr:first-child td:nth-child(4) div')))
-                price_text = competitor_price.get_attribute('textContent')
-                self.price = re.sub(r'\D', '', price_text)
-                logger.info(f"Competitor {self.first_seller_name} price: {self.price}")
-                return int(self.price) if self.price else 0
+            competitor_price = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'table tbody tr:first-child td:nth-child(4) div')))
+            price_text = competitor_price.get_attribute('textContent')
+            self.price = re.sub(r'\D', '', price_text)
+            logger.info(f"Competitor {self.first_seller_name} price: {self.price}")
+            return int(self.price) if self.price else 0
         except Exception as e:
             logger.error(f"Ошибка при парсинге продавца: {e}")
             return None
@@ -62,6 +59,7 @@ class KaspiMarketForPricesParser:
     
     @property
     def price_first_market(self):
+        logger.info(f"Price First Market: {self.price}")
         return int(self.price)
     
     def run(self, name_market):

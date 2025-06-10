@@ -108,6 +108,7 @@ class KaspiParser:
                     market_parser.close_driver()
 
                     print(f"First_sellr: {market_parser.first_seller}")
+                    print(f"First_sellr: {market_parser.price_first_market}")
 
                     return {
                         "vender_code": vender_code,
