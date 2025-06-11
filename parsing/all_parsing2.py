@@ -6,6 +6,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import re
 import logging
+import os
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -28,14 +30,20 @@ class KaspiMarketForPricesParser:
         self.price = None
 
     def setup_driver(self):
-        self.driver = webdriver.Chrome(options=self.options, service=self.service)
+        SELENIUM_REMOTE_URL = os.getenv("SELENIUM_REMOTE_URL", "http://selenium:4444/wd/hub")
+        self.driver =  webdriver.Remote(
+            command_executor=SELENIUM_REMOTE_URL,
+            options=self.options
+        )
         self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        self.wait = WebDriverWait(self.driver, 10)
+        self.wait = WebDriverWait(self.driver, 20)
 
     def open_url(self, url):
         self.driver.get(url)
     
     def close_driver(self):
+        print('close url')
+
         if self.driver:
             self.driver.quit()
 

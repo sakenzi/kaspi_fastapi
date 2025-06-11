@@ -8,6 +8,7 @@ import time
 import re
 from parsing.all_parsing3 import KaspiMarketForPricesParser
 from parsing.all_parsing3 import start_for_prices
+import os
 
 
 class KaspiParser:
@@ -29,14 +30,20 @@ class KaspiParser:
         self.wait = None
 
     def setup_driver(self):
-        self.driver = webdriver.Chrome(options=self.options, service=self.service)
+        SELENIUM_REMOTE_URL = os.getenv("SELENIUM_REMOTE_URL", "http://selenium:4444/wd/hub")
+        self.driver =  webdriver.Remote(
+            command_executor=SELENIUM_REMOTE_URL,
+            options=self.options
+        )
         self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        self.wait = WebDriverWait(self.driver, 18)
+        self.wait = WebDriverWait(self.driver, 20)
 
     def open_url(self):
         self.driver.get('https://idmc.shop.kaspi.kz/login')
-    
+
     def close_driver(self):
+        print('close url')
+
         if self.driver:
             self.driver.quit()
 

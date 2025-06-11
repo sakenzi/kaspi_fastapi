@@ -1,28 +1,64 @@
+version: '3.8'
+
 services:
   backend:
+    container_name: fastapi
     build: .
     depends_on:
       - db
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    command: bash -c "wait-for-it db:5431 -- alembic upgrade head && python main.py"  
     volumes:
       - ./:/code:ro
-    environment:
-      - DATABASE_URL=
-    command: wait-for-it db:5432 -- alembic upgrade head
     ports:
       - "1000:8001"
 
   db:
-    image: postgres:15-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    expose:
-      - 5432
+    container_name: postgres_db
+    image: postgres
+    env_file:
+      - .env
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=
-      - POSTGRES_DB=
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5433:5432"
+      - "5431:5432"  
+    volumes:
+      - .postgres:/var/lib/postgresql/data
 
-volumes:
-  postgres_data:
+  # chromium:
+  #   image: lscr.io/linuxserver/chromium:latest
+  #   container_name: chromium
+  #   security_opt:
+  #     - seccomp:unconfined #optional
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=Etc/UTC
+  #     - CHROME_CLI=https://www.linuxserver.io/ #optional
+  #   volumes:
+  #     - /path/to/config:/config
+  #   ports:
+  #     - 3000:3000
+  #     - 3001:3001
+  #   shm_size: "1gb"
+  #   restart: unless-stopped
+
+  selenium:
+    image: selenium/standalone-chromium:latest # Для AMD64
+    container_name: selenium-container
+    restart: unless-stopped
+    shm_size: 2g
+    ports:
+      - "4444:4444"  # Selenium WebDriver API
+      - "7900:7900"  # VNC Viewer
+    environment:
+      - SE_NODE_MAX_SESSIONS=1
+      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
+      - SE_NODE_SESSION_TIMEOUT=300
+      - SE_NODE_GRID_URL=http://localhost:4444
+      - SE_NODE_DETECT_DRIVERS=false
