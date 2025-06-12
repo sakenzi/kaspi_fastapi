@@ -10,11 +10,13 @@ services:
       - .env
     environment:
       DATABASE_URL: ${DATABASE_URL}
-    command: bash -c "wait-for-it db:5431 -- alembic upgrade head && python main.py"  
+    command: bash -c "wait-for-it db:5431 -- alembic upgrade head && python main.py"
     volumes:
       - ./:/code:ro
     ports:
       - "1000:8001"
+    networks:
+      - live
 
   db:
     container_name: postgres_db
@@ -26,39 +28,72 @@ services:
       POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5431:5432"  
+      - "5431:5432"
     volumes:
       - .postgres:/var/lib/postgresql/data
-
-  # chromium:
-  #   image: lscr.io/linuxserver/chromium:latest
-  #   container_name: chromium
-  #   security_opt:
-  #     - seccomp:unconfined #optional
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000
-  #     - TZ=Etc/UTC
-  #     - CHROME_CLI=https://www.linuxserver.io/ #optional
-  #   volumes:
-  #     - /path/to/config:/config
-  #   ports:
-  #     - 3000:3000
-  #     - 3001:3001
-  #   shm_size: "1gb"
-  #   restart: unless-stopped
+    networks:
+      - live
 
   selenium:
-    image: selenium/standalone-chromium:latest # Для AMD64
+    image: selenium/standalone-chromium:latest
     container_name: selenium-container
     restart: unless-stopped
     shm_size: 2g
     ports:
-      - "4444:4444"  # Selenium WebDriver API
-      - "7900:7900"  # VNC Viewer
+      - "4444:4444"
+      - "7900:7900"
     environment:
       - SE_NODE_MAX_SESSIONS=1
       - SE_NODE_OVERRIDE_MAX_SESSIONS=true
       - SE_NODE_SESSION_TIMEOUT=300
       - SE_NODE_GRID_URL=http://localhost:4444
       - SE_NODE_DETECT_DRIVERS=false
+    networks:
+      - live
+
+  redis:
+    container_name: redis-server
+    image: redis:latest
+    volumes:
+      - ./redisdata:/data
+    command: redis-server --appendonly yes --appendfsync everysec --bind 0.0.0.0
+    healthcheck:
+      test: ["CMD", "redis-cli", "-h", "redis", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    networks:
+      - live
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: celery-worker
+    command: celery -A app.api.comparisons.celery.celery_app worker --loglevel=info --pool=threads --concurrency=1
+    environment:
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+      - backend
+    networks:
+      - live
+
+  flower:
+    build:
+      context: .
+    ports:
+      - '5555:5555'
+    command: bash -c "celery -A app.api.comparisons.celery.celery_app flower"
+    depends_on:
+      - celery_worker
+    networks:
+      - live
+
+networks:
+  live:

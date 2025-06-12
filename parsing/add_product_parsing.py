@@ -43,9 +43,11 @@ class KaspiParser:
 
     def close_driver(self):
         print('close url')
-
-        if self.driver:
-            self.driver.quit()
+        try:
+            if self.driver:
+                self.driver.quit()
+        except Exception as e:
+            print(f"Error while closing driver: {e}")
 
     def parse_kaspi(self, vender_code: str, kaspi_email: str, kaspi_password: str):
         self.open_url()
@@ -135,8 +137,12 @@ class KaspiParser:
 
     def run(self):
         self.setup_driver()
-        result = self.parse_kaspi()
-        return result
+        if self.driver is None:
+            return None
+        try:
+            return self.parse_kaspi(...)
+        finally:
+            self.close_driver()
     
 if __name__ == "__main__":
     def main():

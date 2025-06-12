@@ -45,9 +45,11 @@ class KaspiParser:
     
     def close_driver(self):
         print('close url')
-
-        if self.driver:
-            self.driver.quit()
+        try:
+            if self.driver:
+                self.driver.quit()
+        except Exception as e:
+            print(f"Error while closing driver: {e}")
 
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
     def get_product_rows(self):
